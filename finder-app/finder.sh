@@ -1,21 +1,27 @@
 #!/bin/bash
 # Author: thong-phn
-filesdir=$1
-searchstr=$2
 
-# Check for the number of input args
-if [ $# -ne 2 ]; then
-    echo "USAGE: ./writer.sh <file_path> <string>"
-    exit 1
+if [ $# -lt 2 ]
+then
+	echo "searchsr is missing"
+	exit 1
+else
+	if [ $# -lt 1 ]
+        then
+                echo "filesdir is missing"
+                exit 1
+        else
+                filesdir=$1
+        fi
+	searchstr=$2
 fi
 
-if [ ! -d $filesdir ]; then
-    echo "ERROR: Not a Directory"
-    exit 1
+if [ -d "$filesdir" ]
+then
+	echo "The number of files are  $(find $filesdir -mindepth 1 | wc -l)"
+	echo "and the number of matching lines are $(grep $searchstr $filesdir/* | wc -l)"
+else
+	echo "$filesdir does not represent a directory on the filesystem"
+	exit 1
 fi
-
-# Find string
-echo "The number of files are $(find $filesdir -type f | wc -l) and the number of matching lines are $(grep -r $searchstr $filesdir | wc -l)"
-
-exit 0
 

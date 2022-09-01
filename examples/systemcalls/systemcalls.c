@@ -84,7 +84,7 @@ bool do_exec(int count, ...)
 
     // Parent
     if (pid > 0) {
-        pid = wait(&ret);
+        pid = wait(&status);
         if (pid == -1) {
             perror("wait");
         } else {

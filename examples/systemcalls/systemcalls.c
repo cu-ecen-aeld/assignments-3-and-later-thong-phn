@@ -23,9 +23,7 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 	pid_t ret;
-	
 	ret = system(cmd);
-	
 	if(WIFEXITED(ret) && !WEXITSTATUS(ret)) {
 		return true;
 	} else {
@@ -74,41 +72,29 @@ bool do_exec(int count, ...)
 */
 
 	pid_t pid;
-	
 	int status;
 	bool ret = false;
 	
-	
 	pid = fork();
-	
-	/* error */
 	if(pid == -1)
 		perror("fork");
 	
 	/* Child */
 	if(!pid) {
-		
-		//int execv(const char *pathname, char *const argv[]);
 		status = execv(command[0], command);
-		
-		// exec only returns on error
 		if(status == -1) {
 			perror("execv");
 			exit(1);
-		}
-		
+		}	
 	}
 
 
 	/* Parent */
 	if(pid > 0) {
-		
 		pid = wait(&status);
-		
 		if(pid == -1) {
 			perror("wait");
 		} else {
-			// Check exit status
 			if(!WEXITSTATUS(status)) {
 				printf("Wait status success: %d\n",WEXITSTATUS(status));
 				ret = true;
@@ -117,7 +103,6 @@ bool do_exec(int count, ...)
 			}
 		}
 	}
-	
     va_end(args);
 	printf("return is: %s\n",ret ? "true":"false");
     return ret;
@@ -153,30 +138,19 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 */
 
 	pid_t pid;
-	
 	int status;
 	bool ret = false;
 	
 	pid = fork();
 	
-	// Both parent and child will had this fd
 	int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
-	
-	/* error */
-	if(pid == -1)
-		perror("fork");
-	
+	if(pid == -1) perror("fork");
 	/* Child */
 	if(!pid) {
-		
-		// Redirect std out to file
 		if (dup2(fd, 1) < 0) { perror("dup2"); return false; }
 		close(fd);
-		
-		//int execv(const char *pathname, char *const argv[]);
 		status = execv(command[0], command);
 		
-		// exec only returns on error
 		if(status == -1) {
 			perror("execv");
 			exit(1);
@@ -186,13 +160,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 	
 	/* Parent */
 	if(pid > 0) {
-		
 		pid = wait(&status);
-		
 		if(pid == -1) {
 			perror("wait");
 		} else {
-			// Check exit status
 			if(!WEXITSTATUS(status)) {
 				printf("Wait status success: %d\n",WEXITSTATUS(status));
 				ret = true;
@@ -200,12 +171,8 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 				printf("Wait status fail: %d\n",WEXITSTATUS(status));
 			}
 		}
-		
-		// Close parent fd
 		close(fd);
-		
 	}
-	
     va_end(args);
     return ret;
 }

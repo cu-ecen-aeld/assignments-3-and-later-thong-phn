@@ -133,7 +133,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     pid_t pid;
 	
 	int status;
-	bool ret = false;
+	// bool ret = false;
 	
 	pid = fork();
 	
@@ -171,7 +171,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 			// Check exit status
 			if(!WEXITSTATUS(status)) {
 				printf("Wait status success: %d\n",WEXITSTATUS(status));
-				ret = true;
+				// ret = true;
 			} else {
 				printf("Wait status fail: %d\n",WEXITSTATUS(status));
 			}

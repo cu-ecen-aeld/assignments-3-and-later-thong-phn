@@ -76,7 +76,7 @@ bool do_exec(int count, ...)
     // Child
     if (!pid) {
         status = execv(command[0], command);
-        if (ret == -1) {
+        if (status == -1) {
             perror("execv");
             exit(1);
         }

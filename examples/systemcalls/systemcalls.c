@@ -143,9 +143,12 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 	if(pid == -1)
 		perror("fork");
 	/* Child */
-	if(!pid) {ss
+	if(!pid) {
 		// Redirect std out to file
-		if (dup2(fd, 1) < 0) { perror("dup2"); return false; }
+		if (dup2(fd, 1) < 0) { 
+            perror("dup2"); 
+            return false; 
+        }
 		close(fd);
 		
 		//int execv(const char *pathname, char *const argv[]);

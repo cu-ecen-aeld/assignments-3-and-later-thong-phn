@@ -1,3 +1,9 @@
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/fs.h>
 #include "systemcalls.h"
 
 /**

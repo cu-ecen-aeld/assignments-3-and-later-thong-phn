@@ -11,11 +11,15 @@ bool do_system(const char *cmd)
 {
 
 /*
- * TODO  add your code here
+ *  TODO  add your code here
  *  Call the system() function with the command set in the cmd
- *   and return a boolean true if the system() call completed with success
- *   or false() if it returned a failure
+ *  and return a boolean true if the system() call completed with success
+ *  or false() if it returned a failure
 */
+    if (cmd == NULL) return false;
+
+    int ret = system(cmd);
+    if (ret == -1) return false;
 
     return true;
 }
@@ -58,9 +62,37 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    int status;
+    bool ret = false;
+    int pid = fork();
+    if (pid == -1) return false;
+
+    // Child
+    if (!pid) {
+        status = execv(command[0], command);
+        if (ret == -1) {
+            perror("execv");
+            exit(1);
+        }
+    }
+
+    // Parent
+    if (pid > 0) {
+        pid = wait(&ret);
+        if (pid == -1) {
+            perror("wait");
+        } else {
+            if (!WEXITSTATUS(ret)) {
+                printf("Wait status success: %d\n",WEXITSTATUS(status));
+                ret = true;
+            } else {
+                printf("Wait status fail: %d\n",WEXITSTATUS(status));
+            }
+        }
+    }
 
     va_end(args);
-
+    printf("return is: %s\n",ret ? "true":"false");
     return true;
 }
 
@@ -92,6 +124,52 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    pid_t pid;
+	
+	int status;
+	bool ret = false;
+	
+	pid = fork();
+	
+	// Both parent and child will had this fd
+	int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+	/* error */
+	if(pid == -1)
+		perror("fork");
+	/* Child */
+	if(!pid) {ss
+		// Redirect std out to file
+		if (dup2(fd, 1) < 0) { perror("dup2"); return false; }
+		close(fd);
+		
+		//int execv(const char *pathname, char *const argv[]);
+		status = execv(command[0], command);
+		
+		// exec only returns on error
+		if(status == -1) {
+			perror("execv");
+			exit(1);
+		}
+		
+	}
+	
+	/* Parent */
+	if(pid > 0) {
+		pid = wait(&status);
+		if(pid == -1) {
+			perror("wait");
+		} else {
+			// Check exit status
+			if(!WEXITSTATUS(status)) {
+				printf("Wait status success: %d\n",WEXITSTATUS(status));
+				ret = true;
+			} else {
+				printf("Wait status fail: %d\n",WEXITSTATUS(status));
+			}
+		}
+		// Close parent fd
+		close(fd);
+	}
 
     va_end(args);
 

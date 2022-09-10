@@ -4,7 +4,8 @@ set -u
 OUTDIR=/tmp/aeld
 #KERNEL_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 KERNEL_REPO=https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
-KERNEL_VERSION=v5.1.10
+#KERNEL_VERSION=v5.1.10
+KERNEL_VERSION=linux-5.1.y
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64

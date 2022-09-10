@@ -36,6 +36,7 @@ if [ ! -d "${OUTDIR}/linux-stable" ]; then
 	git config --global user.name "Thong Phan"
 	git config --global user.email "mrthonglion@gmail.com"
 	git clone ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
+	mv linux/ linux-stable/
 fi
 if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable

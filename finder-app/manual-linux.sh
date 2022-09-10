@@ -2,8 +2,8 @@ set -e
 set -u
 
 OUTDIR=/tmp/aeld
-KERNEL_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
-#KERNEL_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+#KERNEL_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+KERNEL_REPO=https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
 KERNEL_VERSION=v5.1.10
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
@@ -84,8 +84,8 @@ mkdir -p var/log
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
-git clone https://busybox.net/busybox.git
-#git clone https://git.busybox.net/busybox
+#git clone https://busybox.net/busybox.git
+git clone https://git.busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox

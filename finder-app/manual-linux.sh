@@ -1,9 +1,3 @@
-#!/bin/bash
-# Script outline to install and build kernel.
-# Author: Siddhant Jajoo
-# Student: Thong Phan
-# Assignments-3-part-2
-
 set -e
 set -u
 
@@ -14,6 +8,7 @@ BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
+PROJECT_PATH=/var/tmp/
 
 if [ $# -lt 1 ]
 then
@@ -24,6 +19,13 @@ else
 fi
 
 mkdir -p ${OUTDIR}
+
+#---Adding my part here
+if ! [ -d "${OUTDIR}" ]; then #directory could not be created, return error
+	echo "Error: $OUTDIR Director could not be created"
+	exit 1
+fi
+#---Adding my part here	
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
@@ -36,33 +38,25 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
 
-	# scripts/dtc/dtc-parser.tab.o:(.bss+0x20): multiple definition of `yylloc';
-	# scripts/dtc/dtc-lexer.lex.o:(.bss+0x0): first defined here
-	sed -i 's/YYLTYPE yylloc;/extern YYLTYPE yylloc;/g' scripts/dtc/dtc-lexer.l
-
     # TODO: Add your kernel build steps here
-	# clean
-	echo "Cleaning kernel build mrproper"
-	make ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} mrproper
-	# defconfig "virt" is default no arg
-	echo "Setting up default config for target virt(default)"
-	make ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} defconfig
-	# build the kernel 
-	echo "Building kernel..."
-	make -j4 ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} all
-	# Build kernel mods
-	echo "Building kernel modules..."
-	make ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} modules
-	# Build device tree
-	echo "Bulding device tree..."
-	make ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} dtbs
+    # Step 1: Clean tree
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
+    # Step 2: Configure 
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
+    # Step 3: Build kernal image
+    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
+    # Step 4: Build modules
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} modules
+    # Step 5: Build device tree
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} dtbs
 fi
 
-echo "Adding the Image in outdir"
-cd $OUTDIR
-cp -a linux-stable/arch/arm64/boot/Image ./
+echo "Adding the Image in outdir  "
+#TODO: Copy the Image in outdir
+cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/
 
 echo "Creating the staging directory for the root filesystem"
+cd "$OUTDIR"
 if [ -d "${OUTDIR}/rootfs" ]
 then
 	echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
@@ -70,14 +64,19 @@ then
 fi
 
 # TODO: Create necessary base directories
-ROOTFS_DIR=${OUTDIR}/rootfs
-# Create the empty rootfs staging
-mkdir ${ROOTFS_DIR}
-# Create the Filesystem Hierarchy Standard (HFS) dirs
-cd rootfs
-mkdir bin dev etc home lib lib64 proc sbin sys tmp usr var
+mkdir ${OUTDIR}/rootfs
+
+if ! [ -d "${OUTDIR}/rootfs" ]
+then
+	echo "Error: ${OUTDIR}/rootfs could not be created"
+	exit 1
+fi
+
+cd ${OUTDIR}/rootfs
+mkdir bin dev etc home lib proc sbin sys tmp usr var lib64
 mkdir usr/bin usr/lib usr/sbin
-mkdir -p /var/log
+mkdir -p var/log
+
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
@@ -86,101 +85,60 @@ git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
-	make distclean
-	make defconfig
+    make distclean
+    make defconfig
 else
     cd busybox
 fi
 
+# TODO: Make and insatll busybox
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
+make CONFIG_PREFIX=${OUTDIR}/rootfs ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
-# TODO: Make and install busybox
-echo -e "Make and install busybox"
-sudo env "PATH=$PATH" make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} CONFIG_PREFIX=${ROOTFS_DIR} install
-
-echo "Copying busybox library dependencies to rootfs"
-cd ${ROOTFS_DIR}
-
-# Cross-compile sysroot dir
-CCSYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
-
-# Show dependencies
+cd ${OUTDIR}/rootfs # My part
+ 
+echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
-# Interpreter / LIBS dependecies
-REQ_INTRP=$(${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter" | awk '{ gsub(/\[|\]/,"",$NF); print $NF}')
-REQ_LIBS=$(${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library" | awk '{ gsub(/\[|\]/,"",$NF); print $NF}')
-
 # TODO: Add library dependencies to rootfs
-for intrp in $REQ_INTRP
-do
-    echo "intrp: $intrp"
-	intrp=$(basename ${intrp})
-	LIB_SRC=$(find ${CCSYSROOT} -name $intrp)
-	LIB_TGT=$(realpath --no-symlinks --relative-to=$CCSYSROOT $LIB_SRC)
-	
-	echo "Copy $LIB_SRC to $LIB_TGT"
-	cp -a $LIB_SRC $LIB_TGT
-	
-    if [ -L $LIB_TGT ]; then
-		LNK_SRC=$(readlink -f $LIB_SRC)
-	    LNK_TGT=$(realpath --relative-to=$CCSYSROOT $LIB_SRC)
-		echo "Copy link: $LNK_SRC to $LNK_TGT"
-		cp -a $LNK_SRC $LNK_TGT
-    fi
-done
+#cd ${OUTDIR}/rootfs
+SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
+cp $SYSROOT/lib/ld-linux-aarch64.so.1 lib
+cp $SYSROOT/lib64/libresolv.so.2 lib64
+cp $SYSROOT/lib64/libm.so.6 lib64
+cp $SYSROOT/lib64/libc.so.6 lib64
 
 
-for lib in $REQ_LIBS
-do
-    lib=$(basename ${lib})
-	LIB_SRC=$(find ${CCSYSROOT} -name $lib)
-	LIB_TGT=$(realpath --no-symlinks --relative-to=$CCSYSROOT $LIB_SRC)
-	echo "Copy $LIB_SRC to $LIB_TGT"
-	cp -a $LIB_SRC $LIB_TGT
-
-	LNKTGT=$(realpath --relative-to=$CCSYSROOT $LIB_SRC)
-	
-    # If src is link, copy link target locally
-    if [ -L $LIB_TGT ]; then
-		LNK_SRC=$(readlink -f $LIB_SRC)
-	    LNK_TGT=$(realpath --relative-to=$CCSYSROOT $LIB_SRC)
-		echo "Copy link: $LNK_SRC to $LNK_TGT"
-		cp -a $LNK_SRC $LNK_TGT
-    fi
-done
-cd ${ROOTFS_DIR}
-
+echo "Starting make devices step"
 # TODO: Make device nodes
-echo -e "Creating device nodes"
 sudo mknod -m 666 dev/null c 1 3
-sudo mknod -m 666 dev/char0 c 5 2
+sudo mknod -m 600 dev/console c 5 1
 
+echo "Starting writer app build step"
 # TODO: Clean and build the writer utility
-echo -e "Cleaning and building writer utility"
 cd ${FINDER_APP_DIR}
-make CROSS_COMPILE=${CROSS_COMPILE} clean
-make CROSS_COMPILE=${CROSS_COMPILE}
+make clean
+make CROSS_COMPILE=${CROSS_COMPILE} all
 
+echo "Starting files copy step"
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
-# Copy your finder.sh, conf/username.txt and (modified as described in step 1 above)
-# finder-test.sh scripts from Assignment 2 into the outdir/rootfs/home directory 
-cp -a $FINDER_APP_DIR/writer $ROOTFS_DIR/home/
-echo -e "Copy finder app dir to rootfs/home"
-cp -a $FINDER_APP_DIR/finder.sh $ROOTFS_DIR/home/
-mkdir $ROOTFS_DIR/home/conf
-cp -a $FINDER_APP_DIR/conf/username.txt $ROOTFS_DIR/home/conf/
-cp -a $FINDER_APP_DIR/finder-test.sh $ROOTFS_DIR/home/
-cp -a $FINDER_APP_DIR/autorun-qemu.sh $ROOTFS_DIR/home/
+cp  ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home
+cp  ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home
+cp -r ${FINDER_APP_DIR}/conf/ ${OUTDIR}/rootfs/home
+cp  ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home
+cp -f ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs
+cp -f ${FINDER_APP_DIR}/autorun-qemu.sh ${OUTDIR}/rootfs/home
 
+echo "Starting chown root directory step"
 # TODO: Chown the root directory
-echo -e "Chaning owner of rootfs dir to root"
-sudo chown -R root:root ${ROOTFS_DIR}
+cd ${OUTDIR}/rootfs
+sudo chown -R root:root *
 
+echo "Starting create initramfs.cpio.gz step"
 # TODO: Create initramfs.cpio.gz
-cd $ROOTFS_DIR
+cd ${OUTDIR}/rootfs
 find . | cpio -H newc -ov --owner root:root > ../initramfs.cpio
 cd ..
 gzip -f initramfs.cpio
-

@@ -46,7 +46,7 @@ fi
 # make clean
 # make
 
-# Adding which command for assignment4
+# Adding which command for A4-P2
 if [ -z $(which finder.sh) ]
 then
 	echo "finder application not in path"
@@ -65,6 +65,9 @@ do
 done
 
 OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
+
+# Adding for A4-P2
+echo ${OUTPUTSTRING} > /tmp/assignment-4-result.txt 
 
 set +e
 echo ${OUTPUTSTRING} | grep "${MATCHSTR}"

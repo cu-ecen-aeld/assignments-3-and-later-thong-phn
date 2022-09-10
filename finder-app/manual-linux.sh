@@ -2,6 +2,7 @@
 # Script outline to install and build kernel.
 # Author: Siddhant Jajoo
 # Student: Thong Phan
+# Assignments-3-part-2
 
 set -e
 set -u
@@ -182,3 +183,4 @@ cd $ROOTFS_DIR
 find . | cpio -H newc -ov --owner root:root > ../initramfs.cpio
 cd ..
 gzip -f initramfs.cpio
+
